@@ -6,27 +6,18 @@ Northwind Payments is fictional. Every merchant, cardholder, amount, and card in
 
 ## Run it
 
-Run everything from `build-battle/merchant-console/`, not the repository root.
-
 ```bash
 npm install
-npm run dev                        # http://localhost:3000
-npm test                           # Vitest, once
-npx vitest run src/lib/csv.test.ts # a single test file
-npx vitest run -t "name"           # tests whose name matches
-npm run test:watch                 # watch mode
-npm run lint                       # next lint
-npm run build                      # production build, also type-checks
+npm run dev
 ```
 
-No database, no seed step, no Docker. Tests run in plain Node with no DOM and only pick up `src/**/*.test.ts`. Imports use the `@/` alias for `src/`.
+No database, no seed step, no Docker.
 
 ## Data lives in memory
 
 Seed data is JSON, loaded into a store module at boot. Route handlers read and write that store.
 
 - Writes last for the life of the dev server and vanish on restart. That is expected.
-- The store is held on `globalThis.__northwindStore` so hot reloads do not regenerate it. Only a server restart resets it.
 - Persistence is tracked separately as NWP-203. **Do not add a database, an ORM, or migrations.**
 - If you need more seed data, add it to the JSON. Never edit seed data to make a failing case disappear.
 
@@ -49,12 +40,6 @@ These four explain most of the code, and breaking them is how bugs get in here.
 2. **Storage and bucketing are UTC.** Display converts to the merchant's timezone. Nothing else does.
 3. **One query builder.** Payment filtering goes through the builder behind `GET /api/payments`. A second implementation is a bug, not a shortcut.
 4. **Validate on the server.** Anything from the client — column names, currencies, limits, statuses — is checked against an allowlist before it reaches a query, a filename, or the store.
-
-## Payments query and export gotchas
-
-- `parseFilters` in `src/data/queries.ts` is the one place client params are validated. `src/app/payments/page.tsx` builds its own filters instead of calling it, so a change to filtering must land in both.
-- `src/app/api/payments/export/route.ts` skips pagination, so an export returns every matching row. `toCsv` in `src/lib/csv.ts` already takes a `columns` argument, but the route does not pass one yet.
-- `sortPayments` sorts amounts with a string comparison, so `900` sorts after `10000`. Treat amount ordering as unreliable until that is fixed.
 
 ## Card rules
 
