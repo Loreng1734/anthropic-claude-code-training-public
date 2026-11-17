@@ -10,7 +10,7 @@ import {
 } from "@/components/Table"
 import { StatusBadge } from "@/components/ui/payments/StatusBadge"
 import { merchantById, merchants } from "@/data/merchants"
-import { filterPayments, queryPayments } from "@/data/queries"
+import { filterPayments, parseFilters, queryPayments } from "@/data/queries"
 import { PaymentFilters, PaymentStatus } from "@/data/types"
 import { formatDate } from "@/lib/dates"
 import { formatMoney } from "@/lib/money"
@@ -67,7 +67,9 @@ export default async function PaymentsPage({
         />
         <ExportDialog
           query={query.toString()}
-          filteredCount={total}
+          // Parse the query the same way the export route does, so the count
+          // matches the rows that will be downloaded.
+          filteredCount={filterPayments(parseFilters(query)).length}
           allCount={filterPayments({}).length}
         />
       </div>

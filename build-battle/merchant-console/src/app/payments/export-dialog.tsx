@@ -10,7 +10,6 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from "@/components/Drawer"
 import {
   DEFAULT_EXPORT_COLUMNS,
@@ -19,7 +18,7 @@ import {
   ExportScope,
 } from "@/lib/csv"
 import { Download } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 
 const COLUMN_LABELS: Record<ExportColumn, string> = {
   id: "Payment ID",
@@ -48,6 +47,8 @@ export function ExportDialog({
     ...DEFAULT_EXPORT_COLUMNS,
   ])
   const [scope, setScope] = useState<ExportScope>("filtered")
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLAnchorElement>(null)
 
   const toggle = (column: ExportColumn, checked: boolean) => {
     // Keep the canonical column order regardless of click order.
@@ -67,17 +68,38 @@ export function ExportDialog({
   })()
 
   return (
-    <Drawer>
-      <DrawerTrigger asChild>
-        <Button variant="secondary" className="w-full gap-2 py-1.5 sm:w-fit">
+    <Drawer open={open} onOpenChange={setOpen}>
+      {/*
+        A real link to the default export (current filter, no last four), so
+        Export still works before hydration or without JavaScript. Once the
+        page is interactive, the click opens the options dialog instead.
+      */}
+      <Button variant="secondary" className="w-full gap-2 py-1.5 sm:w-fit" asChild>
+        <a
+          ref={triggerRef}
+          href={`/api/payments/export${query ? `?${query}` : ""}`}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={(event) => {
+            event.preventDefault()
+            setOpen(true)
+          }}
+        >
           <Download
             className="-ml-0.5 size-4 shrink-0 text-gray-400 dark:text-gray-600"
             aria-hidden="true"
           />
           Export
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent className="sm:max-w-md">
+        </a>
+      </Button>
+      <DrawerContent
+        className="sm:max-w-md"
+        onCloseAutoFocus={(event) => {
+          // Without a Radix Trigger, return focus to the Export link ourselves.
+          event.preventDefault()
+          triggerRef.current?.focus()
+        }}
+      >
         <DrawerHeader>
           <DrawerTitle>Export payments</DrawerTitle>
           <DrawerDescription>
