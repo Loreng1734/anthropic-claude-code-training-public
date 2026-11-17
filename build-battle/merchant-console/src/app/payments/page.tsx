@@ -11,13 +11,14 @@ import {
 import { StatusBadge } from "@/components/ui/payments/StatusBadge"
 import { merchantById, merchants } from "@/data/merchants"
 import { filterPayments, parseFilters, queryPayments } from "@/data/queries"
-import { PaymentFilters, PaymentStatus } from "@/data/types"
+import { PaymentStatus } from "@/data/types"
 import { formatDate } from "@/lib/dates"
 import { formatMoney } from "@/lib/money"
 import Link from "next/link"
 import { ExportDialog } from "./export-dialog"
 import { PaymentsFilterBar } from "./filter-bar"
 
+/** Options for the status picker, in display order. Validation is parseFilters'. */
 const STATUSES: (PaymentStatus | "all")[] = [
   "all",
   "captured",
@@ -33,19 +34,14 @@ export default async function PaymentsPage({
   searchParams: Promise<Record<string, string | undefined>>
 }) {
   const params = await searchParams
-  const filters: PaymentFilters = {
-    status: (STATUSES.includes(params.status as PaymentStatus)
-      ? params.status
-      : "all") as PaymentFilters["status"],
-    merchantId: params.merchantId || undefined,
-    search: params.search || undefined,
-    page: Number(params.page ?? "1") || 1,
-  }
-
-  const { rows, total, page, pageCount } = queryPayments(filters)
   const query = new URLSearchParams(
     Object.entries(params).filter(([, v]) => Boolean(v)) as [string, string][],
   )
+  // The same parse the list and export routes use, so the table, the footer
+  // total and the export dialog's count all describe the same rows.
+  const filters = parseFilters(query)
+
+  const { rows, total, page, pageCount } = queryPayments(filters)
 
   const pageHref = (next: number) => {
     const q = new URLSearchParams(query)
@@ -67,9 +63,7 @@ export default async function PaymentsPage({
         />
         <ExportDialog
           query={query.toString()}
-          // Parse the query the same way the export route does, so the count
-          // matches the rows that will be downloaded.
-          filteredCount={filterPayments(parseFilters(query)).length}
+          filteredCount={total}
           allCount={filterPayments({}).length}
         />
       </div>
